@@ -1,4 +1,4 @@
-package com.autohome.kafka.core.downstream;
+package com.autohome.kafka.core.producer;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;

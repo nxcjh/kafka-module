@@ -1,12 +1,12 @@
-package com.autohome.kafka.core.downstream;
+package com.autohome.kafka.core.producer;
 
 import org.apache.log4j.Logger;
 
-
 /**
  * 发送代理
- * @author yaogang 2014-09-19
+ * @author nxcjh
  *
+ * @param <T>
  */
 public class SendProxy<T> implements Send<T> {
 	

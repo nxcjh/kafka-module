@@ -17,6 +17,7 @@ import com.autohome.kafka.core.StateMechine;
 import com.autohome.kafka.core.periodic.PeriodicObject;
 import com.autohome.kafka.core.upstream.imp.CursorForBatchList;
 import com.autohome.kafka.ha.FileOffsetObj;
+import com.autohome.kafka.instrumentation.SourceCounter;
 import com.autohome.kafka.tools.FileTools;
 
 public class TailFile implements PeriodicObject {
@@ -29,6 +30,8 @@ public class TailFile implements PeriodicObject {
 	private ParamterObj param = null;
 	private long sleep_ms;
 	private StateMechine st = null;
+
+	
 	
 	public TailFile(){
 		this(0);
@@ -36,7 +39,6 @@ public class TailFile implements PeriodicObject {
 	public TailFile(long sleep_ms){
 		this.sleep_ms = sleep_ms;
 		metaMap = new ConcurrentHashMap<String,FileOffsetObj>();// 恢复map file 
-		
 	}
 	public TailFile(long sleep_ms,ParamterObj param){
 		this(0);

@@ -10,16 +10,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
+
 import org.apache.log4j.Logger;
+
 import com.autohome.kafka.comm.ParamterObj;
 import com.autohome.kafka.core.StateMechine;
-import com.autohome.kafka.core.downstream.SendProxy;
-import com.autohome.kafka.core.downstream.SendRunnalbeProxy;
-import com.autohome.kafka.core.downstream.imp.KafkaProduceSendListImp;
 import com.autohome.kafka.core.periodic.PeriodicRunnable;
+import com.autohome.kafka.core.producer.SendProxy;
+import com.autohome.kafka.core.producer.SendRunnalbeProxy;
+import com.autohome.kafka.core.producer.imp.KafkaProduceSendListImp;
 import com.autohome.kafka.core.upstream.TailFile;
 import com.autohome.kafka.core.upstream.imp.CursorForBatchList;
 import com.autohome.kafka.ha.DumpMeta;
+import com.autohome.kafka.instrumentation.http.HTTPMetricsServer;
 import com.autohome.kafka.tools.RegexFileFilter;
 import com.autohome.kafka.watch.DirWatcher;
 /**
@@ -37,19 +40,19 @@ public class KafkaAgentServer {
 	private PeriodicRunnable tailProxy= null;
 	private SendRunnalbeProxy<List<kafka.producer.KeyedMessage<String, String>>>  sendProxy = null;	// 初始化资源
 	private ParamterObj param = null;
-	private TailFile tf = null;
-	private DumpMeta dm = null;
+	private TailFile tailfile = null;
+	private DumpMeta dumpmeta = null;
 	private DirWatcher dirWatcher= null;
-	private SendProxy sp = null;
-	private StateMechine st = null;
+	private SendProxy sendproxy = null;
+	private StateMechine statemechine = null;
 	@SuppressWarnings("unchecked")
 	private final ExecutorService exec = Executors.newFixedThreadPool(4);
-	public KafkaAgentServer(final ParamterObj param,Properties prop){
-		st = new StateMechine();
+	public KafkaAgentServer(final ParamterObj param){
+		statemechine = new StateMechine();
 		
-		this.tf = new TailFile(0,param,st);
+		this.tailfile = new TailFile(0,param,statemechine);
 		//把state 设置为TRUE
-		this.dm = new DumpMeta(st,tf);
+		this.dumpmeta = new DumpMeta(statemechine,tailfile);
 		this.param = param;
 		//文件夹 监控
 		this.dirWatcher=new DirWatcher(param.getDir(), new RegexFileFilter(param.getPattfile()), 30000l).addHandler(
@@ -60,7 +63,7 @@ public class KafkaAgentServer {
 						LOG.info("getFullFileName(f) "+getFullFileName(f));
 						
 						if(curmap.get(getFullFileName(f))!=null){
-							tf.removeCourse(curmap.get(getFullFileName(f)));
+							tailfile.removeCourse(curmap.get(getFullFileName(f)));
 						}
 						curmap.remove(getFullFileName(f));
 					}
@@ -70,21 +73,22 @@ public class KafkaAgentServer {
 					 */
 					public void fileCreated(File f) {
 						
-						if(tf.getFileMeta().get(getFullFileName(f))==null){
+						if(tailfile.getFileMeta().get(getFullFileName(f))==null){
 							CursorForBatchList cfb = new CursorForBatchList(getFullFileName(f),param.getTopic(),sync,0);
 							curmap.put(getFullFileName(f), cfb);
 							//在TailFile 读文件中加入该CursorForBatchList
-							tf.addCourse(cfb);
+							tailfile.addCourse(cfb);
 						}
 					}
 				});
+		
 		//kafka send 代理
-		sp = new SendProxy<List<kafka.producer.KeyedMessage<String, String>>>();
-		KafkaProduceSendListImp ksi = new KafkaProduceSendListImp(prop);
+		sendproxy = new SendProxy<List<kafka.producer.KeyedMessage<String, String>>>();
+		KafkaProduceSendListImp ksi = new KafkaProduceSendListImp(param);
 		//producer 初始化, 获得producer实例
 		ksi.init();
 		//把 producer实例 交给 代理
-		sp.setRealSend(ksi);
+		sendproxy.setRealSend(ksi);
 		
 	}
 	public String getFullFileName(File f){
@@ -95,15 +99,16 @@ public class KafkaAgentServer {
 		}
 	}
 	public void reinit() throws ClassNotFoundException, IOException{
-		tf.reConstructorCursors(sync);
+		tailfile.reConstructorCursors(sync);
 		init();
-		
 	}
+	
 	public void init(){
-		sendProxy = new SendRunnalbeProxy<List<kafka.producer.KeyedMessage<String, String>>>(sp,sync);
+		//初始化kafka producer 发送代理
+		sendProxy = new SendRunnalbeProxy<List<kafka.producer.KeyedMessage<String, String>>>(sendproxy,sync);
 		dirProxy = new PeriodicRunnable(dirWatcher);
-		tailProxy =  new PeriodicRunnable(tf);
-		haProxy = new PeriodicRunnable(dm);
+		tailProxy =  new PeriodicRunnable(tailfile);
+		haProxy = new PeriodicRunnable(dumpmeta);
 	}
 	
 	public void start(){	
@@ -112,10 +117,14 @@ public class KafkaAgentServer {
 		exec.execute(dirProxy);
 		exec.execute(tailProxy);
 		exec.execute(haProxy);
+		//开启监控
+		HTTPMetricsServer.start();
 		
 	}
 	public void stop(){
 		exec.shutdown();
+		//关闭见控股
+		HTTPMetricsServer.stop();
 	}
 	public void addShutdownHook(){
 		

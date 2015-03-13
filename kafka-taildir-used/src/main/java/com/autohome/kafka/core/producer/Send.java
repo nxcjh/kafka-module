@@ -1,10 +1,8 @@
-package com.autohome.kafka.core.downstream;
-
-
+package com.autohome.kafka.core.producer;
 
 /**
  * 
- * @author yaogang 2014-09-19
+ * @author nxcjh
  *
  * @param <T>
  */

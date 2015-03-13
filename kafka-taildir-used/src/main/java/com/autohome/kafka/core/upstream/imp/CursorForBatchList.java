@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 import kafka.producer.KeyedMessage;
 
 import com.autohome.kafka.ha.FileOffsetObj;
+import com.autohome.kafka.instrumentation.SourceCounter;
 /**
  * 读取文件类 通过nio进行读取
  * 
@@ -36,6 +37,10 @@ public class CursorForBatchList {
 	  private String topic;
 	  private int count = 0;
 	  long offset = 0l;
+	  
+	  private SourceCounter sourceCounter;
+	  
+	  
 	  public CursorForBatchList(String fullfilename,String topic,BlockingQueue<List<kafka.producer.KeyedMessage<String, String>>> sync,long offset){
 		  this.sync = sync;//BlockingQueue<List<kafka.producer.KeyedMessage<String, String>>>
 		  this.topic = topic;
@@ -53,6 +58,10 @@ public class CursorForBatchList {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		  if (sourceCounter == null) {
+		      sourceCounter = new SourceCounter("read");
+		 }
+		sourceCounter.start();
 	  }
 	 
 	  public void init() throws IOException{
@@ -71,6 +80,8 @@ public class CursorForBatchList {
 		  this.raf.seek(offset);
 		  //// return the channel of the file
 		  in = raf.getChannel();
+		  
+		  
 	  }
 	  
 	  
@@ -112,6 +123,9 @@ public class CursorForBatchList {
 		    	 }
 		    }
 		  	sync.put(list); // 发送batch list
+		  	
+		    sourceCounter.incrementAppendBatchReceivedCount();
+		    sourceCounter.addToEventReceivedCount(list.size());
 		  	this.list = new ArrayList<kafka.producer.KeyedMessage<String, String>>();
 		  	count=0;
 		    buf.reset();

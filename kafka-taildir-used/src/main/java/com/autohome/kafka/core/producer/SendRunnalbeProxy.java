@@ -1,10 +1,12 @@
-package com.autohome.kafka.core.downstream;
+package com.autohome.kafka.core.producer;
 
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
+
+import com.autohome.kafka.instrumentation.SinkCounter;
 
 
 
@@ -16,12 +18,20 @@ public class SendRunnalbeProxy<T> implements Runnable {
 	private volatile boolean running = false;
 	final BlockingQueue<T> sync;
 	private int count = 0;
+	private SinkCounter sinkCounter;
 	
 	public SendRunnalbeProxy(Send<T> send,BlockingQueue<T> sync){
 		this.s = send;
 		this.sync = sync;
 		this.running = true;
+		
+		 if (sinkCounter == null) {
+		      sinkCounter = new SinkCounter("send");
+		    }
+		 sinkCounter.start();
 	}
+	
+	
 	public void run() {
 		T tmpks = null;
 		while(running){
@@ -32,6 +42,7 @@ public class SendRunnalbeProxy<T> implements Runnable {
 				send(tmpks);// 如果在这个地方出现异常，发送数据失败，那么tmpks就不会设置成空，系统就不会从sync中提取数据，会重复发送失败的数据
 				tmpks = null;//发送成功时设置为空，从sync中读取后面的数据
 				count=0;
+				sinkCounter.incrementBatchCompleteCount();
 			} catch (Throwable e) {
 				e.printStackTrace();
 				LOG.error("kafka send Exception");

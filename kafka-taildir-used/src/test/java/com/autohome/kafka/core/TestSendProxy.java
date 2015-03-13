@@ -6,10 +6,10 @@ import kafka.producer.KeyedMessage;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.autohome.kafka.core.downstream.Send;
-import com.autohome.kafka.core.downstream.SendFactoryImp;
-import com.autohome.kafka.core.downstream.SendProxy;
-import com.autohome.kafka.core.downstream.imp.KafkaProduceSendImp;
+import com.autohome.kafka.core.producer.Send;
+import com.autohome.kafka.core.producer.SendFactoryImp;
+import com.autohome.kafka.core.producer.SendProxy;
+import com.autohome.kafka.core.producer.imp.KafkaProduceSendImp;
 
 public class TestSendProxy {
 //	private SendProxy sendp = new SendProxy<KeyedMessage<String,String>>(KafkaProduceSendImp.class);

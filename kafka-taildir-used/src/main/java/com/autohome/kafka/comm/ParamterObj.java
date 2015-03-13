@@ -4,6 +4,9 @@ public class ParamterObj {
 	private String topic;
 	private String dir;
 	private String pattfile;
+	
+	private String broker_list;
+	private boolean reconstruct;
 	public String getTopic() {
 		return topic;
 	}
@@ -22,5 +25,21 @@ public class ParamterObj {
 	public void setPattfile(String pattfile) {
 		this.pattfile = pattfile;
 	}
+	public String getBroker_list() {
+		return broker_list;
+	}
+	public void setBroker_list(String broker_list) {
+		this.broker_list = broker_list;
+	}
+	public boolean isReconstruct() {
+		return reconstruct;
+	}
+	public void setReconstruct(boolean reconstruct) {
+		this.reconstruct = reconstruct;
+	}
+	
+	
+	
+	
 	
 }

@@ -1,4 +1,4 @@
-package com.autohome.kafka.core.downstream;
+package com.autohome.kafka.core.producer;
 
 
 public class SendFactoryImp {
